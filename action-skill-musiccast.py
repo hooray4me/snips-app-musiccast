@@ -13,16 +13,12 @@ MQTT_IP_ADDR: str = "localhost"
 MQTT_PORT: int = 1883
 MQTT_ADDR: str = "{}:{}".format(MQTT_IP_ADDR, str(MQTT_PORT))
 
-def setPower(ipAddress,cmd):
-    uri="http://" + str(ipAddress) + "/YamahaExtendedControl/v1/main/setPower?power=" + str(cmd)
-    response = requests.get(uri)
-
-def playAction(ipAddress,cmd):
-    uri="http://" + str(ipAddress) + "/YamahaExtendedControl/v1/netusb/setPlayback?playback=" + str(cmd)
+def apiAction(ipAddress,cmd):
+    uri="http://" + str(ipAddress) + "/YamahaExtendedControl/v1/" + str(cmd)
     response = requests.get(uri) 
 
-def playInfo(ipAddress):
-    uri="http://" + str(ipAddress) + "/YamahaExtendedControl/v1/netusb/getPlayInfo"
+def apiResponse(ipAddress,cmd):
+    uri="http://" + str(ipAddress) + "/YamahaExtendedControl/v1/" + str(cmd)
     response = requests.get(uri)
     return response
 
@@ -41,20 +37,29 @@ class MusicCast(object):
         myaction = intent_message.slots.mcaction.first().value
         ipAddress = self.config.get("secret").get("ip-address")
         if myaction == "on":
-            setPower(ipAddress,"on")
+            apiAction(ipAddress,"main/setPower?power=on")
             p = "it is turned on"
             hermes.publish_end_session(intent_message.session_id, p)
         elif myaction == "off":
-            setPower(ipAddress,"standby")
+            apiAction(ipAddress,"main/setPower?power=standby")
             p = "it is turned off"
             hermes.publish_end_session(intent_message.session_id, p)
         elif myaction == "play" or myaction == "stop":
-            playAction(ipAddress,myaction)
+            apiAction(ipAddress,"netusb/setPlayback?playback=" + myaction)
             p = "play action is set to " + myaction
             hermes.publish_end_session(intent_message.session_id, p)
         elif myaction == "tell":
-            r = playInfo(ipAddress)
+            r = apiResponse(ipAddress,"netusb/getPlayInfo")
             p = "the current song is " + str(r.json().get("track")) + " by " + str(r.json().get("artist"))
+            hermes.publish_end_session(intent_message.session_id, p)
+        elif myaction == "guy show":
+            p = "did you mean the nasty muppet show. thats what they should call it"
+            hermes.publish_end_session(intent_message.session_id, p)
+            r = apiResponse(ipAddress,"main/getStatus")
+            if str(r.json().get("power")) == "standby":
+                apiAction(ipAddress,"main/setPower?power=on")
+            apiAction(ipAddress,"netusb/recallPreset?zone=main&num=2")
+            p = "I have turned it on. Bears are fast"
             hermes.publish_end_session(intent_message.session_id, p)
         else:
             hermes.publish_end_session(intent_message.session_id, "bugger, somethings a muck")
