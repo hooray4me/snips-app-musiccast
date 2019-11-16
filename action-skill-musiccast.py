@@ -61,6 +61,17 @@ class MusicCast(object):
             apiAction(ipAddress,"netusb/recallPreset?zone=main&num=2")
             p = "I have turned it on. Bears are fast"
             hermes.publish_end_session(intent_message.session_id, p)
+        elif myaction == "highway" or myaction == "high way":
+            r = apiResponse(ipAddress,"main/getStatus")
+            if str(r.json().get("power")) == "standby":
+                apiAction(ipAddress,"main/setPower?power=on")
+            apiAction(ipAddress,"netusb/recallPreset?zone=main&num=1")
+            p = "I have turned it on."
+            hermes.publish_end_session(intent_message.session_id, p)
+        elif myaction == "up" or myaction == "down":
+            apiAction(ipAddress,"main/setVolume?volume=" + myaction + "&step=5")
+            p = ""
+            hermes.publish_end_session(intent_message.session_id, p)
         else:
             hermes.publish_end_session(intent_message.session_id, "bugger, somethings a muck")
 
